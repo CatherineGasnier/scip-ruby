@@ -8,7 +8,8 @@ Run the SCIP unit tests and snapshots with:
 
 Fixtures under `testdata/` pair Ruby source with a `.snapshot.rb` file. Snapshots
 check SCIP definition and reference symbols, roles, source ranges, enclosing
-ranges, and optionally documentation. Multifile fixtures live under
+ranges, and optionally documentation. Occurrences with the Test role are
+marked `(test)`. Multifile fixtures live under
 `testdata/multifile/`.
 
 By default, each fixture runs through both the original parser and Prism. Both

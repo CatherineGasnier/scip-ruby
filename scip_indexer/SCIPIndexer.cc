@@ -606,6 +606,8 @@ public:
         }
     }
 
+    // Moves the occurrences and symbols collected for `file` into a new Document.
+    // Every occurrence in a test file also gets the Test role.
     void saveDocument(const core::GlobalState &gs, const core::FileRef file) {
         scip::Document document;
         // TODO(varun): Double-check the path code and maybe document it,
@@ -618,10 +620,14 @@ public:
         } else {
             document.set_relative_path(string(path));
         }
+        auto isTestFile = isTestPath(document.relative_path());
 
         auto occurrences = this->occurrenceMap.find(file);
         if (occurrences != this->occurrenceMap.end()) {
             for (auto &occurrence : occurrences->second) {
+                if (isTestFile) {
+                    occurrence.set_symbol_roles(occurrence.symbol_roles() | scip::SymbolRole::Test);
+                }
                 *document.add_occurrences() = move(occurrence);
             }
             fast_sort(*document.mutable_occurrences(),
@@ -643,6 +649,12 @@ public:
         this->documents.push_back(move(document));
     }
 };
+
+bool isTestPath(string_view relativePath) {
+    // Normalizing drops a leading "./", which paths entered by the snapshot test runner have.
+    auto path = filesystem::path(relativePath).lexically_normal();
+    return !path.empty() && (*path.begin() == "spec" || *path.begin() == "test");
+}
 
 string format_ancestry(const core::GlobalState &gs, core::SymbolRef sym) {
     UnorderedSet<core::SymbolRef> visited;
