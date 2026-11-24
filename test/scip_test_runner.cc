@@ -480,6 +480,9 @@ void formatSnapshot(const scip::Document &document, FormatOptions options, std::
             if (!isDefinition && (occ.symbol_roles() & scip::SymbolRole::WriteAccess)) {
                 symbolRole = (occ.symbol_roles() & scip::SymbolRole::ReadAccess) ? "(read+write) " : "(write) ";
             }
+            if (occ.symbol_roles() & scip::SymbolRole::Test) {
+                symbolRole += "(test) ";
+            }
 
             ENFORCE(range.start.column < range.end.column, "We shouldn't be emitting empty ranges 🙅");
 
@@ -573,7 +576,7 @@ struct TestSettings {
 // preserving a bijection across the entire document: merged scopes and references
 // to the wrong local still fail, while source lines and hover text remain literal.
 string normalizeLocalSymbols(const string &snapshot) {
-    static const regex marker(R"((# *\^+ (?:definition|reference(?: \([a-z+]+\))?) )local (\S+))");
+    static const regex marker(R"((# *\^+ (?:definition|reference)(?: \([a-z+]+\))* )local (\S+))");
     UnorderedMap<string, size_t> locals;
     istringstream input(snapshot);
     ostringstream output;
@@ -602,6 +605,22 @@ TEST_CASE("LocalSymbolNormalization") {
           normalizeLocalSymbols("#^^ definition local 7$200\n#^^ definition local 7$200\n#^^ reference local 7$200\n"));
     const string literal = " puts('local 1$100')\n#| local 2$100\n";
     CHECK(normalizeLocalSymbols(literal) == literal);
+    CHECK(normalizeLocalSymbols("#^^ definition (test) local 7$200\n#^^ reference (write) (test) local 7$200\n") ==
+          "#^^ definition (test) local 0\n#^^ reference (write) (test) local 0\n");
+}
+
+TEST_CASE("IsTestPath") {
+    if (!onlyRunUnitTests) {
+        return;
+    }
+    using scip_indexer::isTestPath;
+    CHECK(isTestPath("spec/calculator_spec.rb"));
+    CHECK(isTestPath("test/models/user_test.rb"));
+    CHECK(isTestPath("./test/test_helper.rb"));
+    CHECK_FALSE(isTestPath("lib/calculator.rb"));
+    CHECK_FALSE(isTestPath("lib/rack/test/session.rb")); // Only at the project root.
+    CHECK_FALSE(isTestPath("specs/calculator_spec.rb")); // Whole path components only.
+    CHECK_FALSE(isTestPath("test_helper.rb"));
 }
 
 void updateSnapshots(const scip::Index &index, const TestSettings &settings, const std::filesystem::path &outputDir) {

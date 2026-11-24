@@ -93,6 +93,18 @@ and paths created by traversing directories.
 
 The path for emitting the SCIP index. Defaults to `index.scip`.
 
+## Test code
+
+scip-ruby sets the `Test` symbol role on every occurrence in test code,
+for both definitions and references. This lets SCIP consumers tell test
+code apart from the code under test.
+
+Test code is every file under `spec/` or `test/` at the project root.
+These are the directories that the standard test runners use without configuration:
+RSpec loads specs from `spec/`, and Rails and `Rake::TestTask` run Minitest tests from `test/`.
+Files in those directories that are not tests themselves, such as `spec/spec_helper.rb`
+or `test/support/`, are test code too.
+
 ## `--unquiet`
 
 scip-ruby defaults to running in Sorbet's quiet mode, as scip-ruby supports
